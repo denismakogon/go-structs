@@ -24,7 +24,23 @@ func StructFromEnv(i interface{}) error {
 			if value == "" {
 				return fmt.Errorf("missing env var value: %s", strings.ToUpper(tagValue))
 			}
-			v.FieldByName(fi.Name).SetString(value)
+			f := v.FieldByName(fi.Name)
+			switch fi.Type.Kind() {
+			case reflect.String:
+				f.SetString(value)
+			case reflect.Int, reflect.Int32, reflect.Int64:
+				i, err := strconv.Atoi(value)
+				if err != nil {
+					return err
+				}
+				f.SetInt(int64(i))
+			case reflect.Bool:
+				val := false
+				if value == "true" {
+					val = true
+				}
+				f.SetBool(val)
+			}
 		}
 	}
 	return nil
@@ -59,10 +75,16 @@ func ToMap(in interface{}) (map[string]interface{}, error) {
 	for i := 0; i < v.NumField(); i++ {
 		fi := typ.Field(i)
 		if tagValue := fi.Tag.Get("json"); tagValue != "" {
-			if v.Field(i).Type() == reflect.TypeOf(true) {
-				out[strings.ToUpper(tagValue)] = strconv.FormatBool(v.Field(i).Bool())
-			} else {
-				out[strings.ToUpper(tagValue)] = v.Field(i).String()
+			fKind := v.Field(i).Type().Kind()
+			key := strings.ToUpper(tagValue)
+			value := v.Field(i)
+			switch fKind {
+			case reflect.String:
+				out[key] = value.String()
+			case reflect.Bool:
+				out[key] = value.Bool()
+			case reflect.Int, reflect.Int32, reflect.Int64:
+				out[key] = value.Int()
 			}
 		}
 	}
