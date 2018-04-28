@@ -97,7 +97,7 @@ func Append(obj interface{}, config map[string]string) (map[string]string, error
 		return nil, err
 	}
 	for key, value := range mMap {
-		config[key] = value.(string)
+		config[key] = fmt.Sprintf("%v", value)
 	}
 	return config, nil
 }
